@@ -34,7 +34,15 @@ class RpcLiteralRequestMessageBinder implements MessageBinderInterface
 
         foreach ($messageDefinition->getArguments() as $argument) {
             if (isset($message[$i])) {
-                $result[$argument->getName()] = $this->processType($argument->getType()->getPhpType(), $message[$i]);
+                $phpType = $argument->getType()->getPhpType();
+                if (
+                    is_object($message[$i])
+                    && $message[$i] instanceof $phpType
+                    && isset($definitionComplexTypes[get_class($message[$i])])
+                ) {
+                    $phpType = get_class($message[$i]);
+                }
+                $result[$argument->getName()] = $this->processType($phpType, $message[$i]);
             }
 
             $i++;
