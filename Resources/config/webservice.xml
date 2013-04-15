@@ -30,11 +30,28 @@
                 <argument key="cache_dir">%besimple.soap.cache.dir%</argument>
                 <argument key="debug">%kernel.debug%</argument>
                 <argument key="cache_type">null</argument>
-                <argument key="binder_request_header_class">%besimple.soap.binder.request_header.rpcliteral.class%</argument>
-                <argument key="binder_request_class">%besimple.soap.binder.request.rpcliteral.class%</argument>
-                <argument key="binder_response_class">%besimple.soap.binder.response.rpcliteral.class%</argument>
             </argument>
             <argument type="service" id="besimple.soap.cache" />
+            <call method="setRequestHeaderBinder">
+                <argument type="service" id="besimple.soap.binder.request_header"/>
+            </call>
+            <call method="setRequestBinder">
+                <argument type="service" id="besimple.soap.binder.request"/>
+            </call>
+            <call method="setResponseBinder">
+                <argument type="service" id="besimple.soap.binder.response"/>
+            </call>
+        </service>
+
+        <service id="besimple.soap.binder.request_header"
+                 class="%besimple.soap.binder.request_header.rpcliteral.class%"/>
+        <service id="besimple.soap.binder.request" class="%besimple.soap.binder.request.rpcliteral.class%">
+            <tag name="monolog.logger" channel="besimple.soap.binder.request"/>
+            <argument type="service" id="logger"/>
+        </service>
+        <service id="besimple.soap.binder.response" class="%besimple.soap.binder.response.rpcliteral.class%">
+            <tag name="monolog.logger" channel="besimple.soap.binder.response"/>
+            <argument type="service" id="logger"/>
         </service>
 
         <service id="besimple.soap.context.documentwrapped" class="%besimple.soap.context.class%" abstract="true">

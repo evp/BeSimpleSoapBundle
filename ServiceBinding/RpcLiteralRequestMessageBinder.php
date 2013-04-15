@@ -10,10 +10,11 @@
 
 namespace BeSimple\SoapBundle\ServiceBinding;
 
+use BeSimple\SoapBundle\Reflection\ClassReflection;
+use BeSimple\SoapBundle\Reflection\ReflectionException;
+use BeSimple\SoapBundle\ServiceDefinition\ComplexType;
 use BeSimple\SoapBundle\ServiceDefinition\Method;
-use BeSimple\SoapBundle\ServiceDefinition\Strategy\MethodComplexType;
-use BeSimple\SoapBundle\ServiceDefinition\Strategy\PropertyComplexType;
-
+use Symfony\Component\HttpKernel\Log\LoggerInterface;
 use Zend\Soap\Wsdl;
 
 /**
@@ -23,10 +24,20 @@ use Zend\Soap\Wsdl;
 class RpcLiteralRequestMessageBinder implements MessageBinderInterface
 {
     private $messageRefs = array();
+    /**
+     * @var ComplexType[]
+     */
     private $definitionComplexTypes;
+    private $logger;
+
+    public function __construct(LoggerInterface $logger = null)
+    {
+        $this->logger = $logger;
+    }
 
     public function processMessage(Method $messageDefinition, $message, array $definitionComplexTypes = array())
     {
+        $this->messageRefs = array();
         $this->definitionComplexTypes = $definitionComplexTypes;
 
         $result = array();
@@ -34,15 +45,7 @@ class RpcLiteralRequestMessageBinder implements MessageBinderInterface
 
         foreach ($messageDefinition->getArguments() as $argument) {
             if (isset($message[$i])) {
-                $phpType = $argument->getType()->getPhpType();
-                if (
-                    is_object($message[$i])
-                    && $message[$i] instanceof $phpType
-                    && isset($definitionComplexTypes[get_class($message[$i])])
-                ) {
-                    $phpType = get_class($message[$i]);
-                }
-                $result[$argument->getName()] = $this->processType($phpType, $message[$i]);
+                $result[$argument->getName()] = $this->processType($argument->getType()->getPhpType(), $message[$i]);
             }
 
             $i++;
@@ -53,17 +56,24 @@ class RpcLiteralRequestMessageBinder implements MessageBinderInterface
 
     protected function processType($phpType, $message)
     {
+        if (
+            is_object($message)
+            && $message instanceof $phpType
+            && isset($this->definitionComplexTypes[get_class($message)])
+        ) {
+            $phpType = get_class($message);
+        }
         $isArray = false;
 
         if (preg_match('/^([^\[]+)\[\]$/', $phpType, $match)) {
             $isArray = true;
-            $array   = array();
             $phpType = $match[1];
         }
 
         // @TODO Fix array reference
         if (isset($this->definitionComplexTypes[$phpType])) {
             if ($isArray) {
+                $array = array();
                 if (isset($message->item)) {
                     foreach ($message->item as $complexType) {
                         $array[] = $this->checkComplexType($phpType, $complexType);
@@ -78,7 +88,7 @@ class RpcLiteralRequestMessageBinder implements MessageBinderInterface
             if (isset($message->item)) {
                 $message = $message->item;
             } else {
-                $message = $array;
+                $message = array();
             }
         }
 
@@ -92,33 +102,46 @@ class RpcLiteralRequestMessageBinder implements MessageBinderInterface
             return $this->messageRefs[$hash];
         }
 
-        $this->messageRefs[$hash] = $message;
+        $className = get_class($message);
+        $result = new $className();
+        $this->messageRefs[$hash] = $result;
 
-        $r = new \ReflectionClass($message);
+        $reflection = new ClassReflection($className);
         foreach ($this->definitionComplexTypes[$phpType] as $type) {
-            $p = $r->getProperty($type->getName());
-            if ($p->isPublic()) {
-                $value = $message->{$type->getName()};
-            } else {
-                $p->setAccessible(true);
-                $value = $p->getValue($message);
-            }
-
-            if (null !== $value) {
-                $value = $this->processType($type->getValue(), $value);
-
-                if ($p->isPublic()) {
-                    $message->{$type->getName()} = $value;
-                } else {
-                    $p->setValue($message, $value);
+            /** @var ComplexType $type */
+            if (!$type->isReadonly()) {
+                try {
+                    $value = $reflection->getByMethod($message, $type->getName());
+                } catch (ReflectionException $exception) {
+                    $this->logger->notice(
+                        'Getter not found for property, using reflection',
+                        array($className, $type->getName())
+                    );
+                    $value = $reflection->getByReflection($message, $type->getName());
                 }
-            }
 
-            if (!$type->isNillable() && null === $value) {
-                throw new \SoapFault('SOAP_ERROR_COMPLEX_TYPE', sprintf('"%s:%s" cannot be null.', ucfirst($phpType), $type->getName()));
+                if (null !== $value) {
+                    $value = $this->processType($type->getValue(), $value);
+                    try {
+                        $reflection->setByMethod($result, $type->getName(), $value);
+                    } catch (ReflectionException $exception) {
+                        $this->logger->notice(
+                            'Setter not found for property, using reflection',
+                            array($className, $type->getName())
+                        );
+                        $reflection->setByReflection($result, $type->getName(), $value);
+                    }
+                }
+
+                if (!$type->isNillable() && null === $value) {
+                    throw new \SoapFault(
+                        'SOAP_ERROR_COMPLEX_TYPE',
+                        sprintf('"%s:%s" cannot be null.', ucfirst($phpType), $type->getName())
+                    );
+                }
             }
         }
 
-        return $message;
+        return $result;
     }
 }

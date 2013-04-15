@@ -18,6 +18,7 @@ class ComplexType
     private $name;
     private $value;
     private $isNillable = false;
+    private $readonly = false;
 
     public function getName()
     {
@@ -47,5 +48,15 @@ class ComplexType
     public function setNillable($isNillable)
     {
         $this->isNillable = (bool) $isNillable;
+    }
+
+    public function setReadonly($readonly)
+    {
+        $this->readonly = $readonly;
+    }
+
+    public function isReadonly()
+    {
+        return $this->readonly;
     }
 }

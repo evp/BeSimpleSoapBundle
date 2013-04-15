@@ -18,6 +18,7 @@ class ComplexType extends Configuration
     private $name;
     private $value;
     private $isNillable = false;
+    private $readonly = false;
 
     public function getName()
     {
@@ -47,6 +48,16 @@ class ComplexType extends Configuration
     public function setNillable($isNillable)
     {
         $this->isNillable = (bool) $isNillable;
+    }
+
+    public function setReadonly($readonly)
+    {
+        $this->readonly = $readonly;
+    }
+
+    public function isReadonly()
+    {
+        return $this->readonly;
     }
 
     public function getAliasName()

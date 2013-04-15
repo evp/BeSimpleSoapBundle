@@ -42,6 +42,10 @@ class WebServiceContext
     private $serviceBinder;
     private $serverBuilder;
 
+    private $requestHeaderBinder;
+    private $requestBinder;
+    private $responseBinder;
+
     public function __construct(LoaderInterface $loader, DumperInterface $dumper, Classmap $classmap, TypeRepository $typeRepository, TypeConverterCollection $converters, array $options) {
         $this->loader         = $loader;
         $this->wsdlFileDumper = $dumper;
@@ -106,9 +110,9 @@ class WebServiceContext
         if (null === $this->serviceBinder) {
             $this->serviceBinder = new ServiceBinder(
                 $this->getServiceDefinition(),
-                new $this->options['binder_request_header_class'](),
-                new $this->options['binder_request_class'](),
-                new $this->options['binder_response_class']()
+                $this->requestHeaderBinder,
+                $this->requestBinder,
+                $this->responseBinder
             );
         }
 
@@ -131,4 +135,21 @@ class WebServiceContext
 
         return $this->serverBuilder;
     }
+
+    public function setRequestBinder($requestBinder)
+    {
+        $this->requestBinder = $requestBinder;
+    }
+
+    public function setRequestHeaderBinder($requestHeaderBinder)
+    {
+        $this->requestHeaderBinder = $requestHeaderBinder;
+    }
+
+    public function setResponseBinder($responseBinder)
+    {
+        $this->responseBinder = $responseBinder;
+    }
+
+
 }
