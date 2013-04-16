@@ -7,7 +7,7 @@ class FooBar
     protected $foo;
     protected $bar;
 
-    public function __construct(Foo $foo, Bar $bar)
+    public function __construct(Foo $foo = null, Bar $bar = null)
     {
         $this->foo = $foo;
         $this->bar = $bar;

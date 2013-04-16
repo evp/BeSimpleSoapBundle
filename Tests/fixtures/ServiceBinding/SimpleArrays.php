@@ -9,7 +9,7 @@ class SimpleArrays
     private $array2;
     private $array3;
 
-    public function __construct($array1, $array2, $array3)
+    public function __construct($array1 = null, $array2 = null, $array3 = null)
     {
         $this->array1 = $array1;
         $this->array2 = $array2;

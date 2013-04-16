@@ -6,7 +6,7 @@ class BarRecursive
 {
     private $foo;
 
-    public function __construct(FooRecursive $foo)
+    public function __construct(FooRecursive $foo = null)
     {
         $this->foo = $foo;
     }

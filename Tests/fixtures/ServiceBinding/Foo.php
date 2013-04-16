@@ -7,7 +7,7 @@ class Foo
     public $foo;
     public $bar;
 
-    public function __construct($foo, $bar)
+    public function __construct($foo = null, $bar = null)
     {
         $this->foo = $foo;
         $this->bar = $bar;

@@ -113,10 +113,12 @@ class RpcLiteralRequestMessageBinder implements MessageBinderInterface
                 try {
                     $value = $reflection->getByMethod($message, $type->getName());
                 } catch (ReflectionException $exception) {
-                    $this->logger->notice(
-                        'Getter not found for property, using reflection',
-                        array($className, $type->getName())
-                    );
+                    if ($this->logger) {
+                        $this->logger->notice(
+                            'Getter not found for property, using reflection',
+                            array($className, $type->getName())
+                        );
+                    }
                     $value = $reflection->getByReflection($message, $type->getName());
                 }
 
@@ -125,10 +127,12 @@ class RpcLiteralRequestMessageBinder implements MessageBinderInterface
                     try {
                         $reflection->setByMethod($result, $type->getName(), $value);
                     } catch (ReflectionException $exception) {
-                        $this->logger->notice(
-                            'Setter not found for property, using reflection',
-                            array($className, $type->getName())
-                        );
+                        if ($this->logger) {
+                            $this->logger->notice(
+                                'Setter not found for property, using reflection',
+                                array($className, $type->getName())
+                            );
+                        }
                         $reflection->setByReflection($result, $type->getName(), $value);
                     }
                 }
