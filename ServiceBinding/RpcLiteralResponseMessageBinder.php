@@ -44,14 +44,6 @@ class RpcLiteralResponseMessageBinder implements MessageBinderInterface
 
     private function processType($phpType, $message)
     {
-        if (
-            is_object($message)
-            && $message instanceof $phpType
-            && isset($this->definitionComplexTypes[get_class($message)])
-        ) {
-            $phpType = get_class($message);
-        }
-
         $isArray = false;
         if (preg_match('/^([^\[]+)\[\]$/', $phpType, $match)) {
             $isArray = true;
@@ -80,6 +72,14 @@ class RpcLiteralResponseMessageBinder implements MessageBinderInterface
         $hash = spl_object_hash($message);
         if (isset($this->messageRefs[$hash])) {
             return $this->messageRefs[$hash];
+        }
+
+        if (
+            is_object($message)
+            && $message instanceof $phpType
+            && isset($this->definitionComplexTypes[get_class($message)])
+        ) {
+            $phpType = get_class($message);
         }
 
         $this->messageRefs[$hash] = $message;
